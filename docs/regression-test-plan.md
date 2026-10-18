@@ -6,6 +6,7 @@
 - [x] Re-ran `clang++ -fsyntax-only` against the exact compile flags from `/root/brambletown-upgrade-work/build-production/compile_commands.json` (AzerothCore commit `2a2211cd8`).
 - [x] New module source commit `3a2dfb9` compiled against AzerothCore commit `2a2211cd8`, exit code 0 with no diagnostics (2026-10-18). No live source, binary, or configuration modified.
 - [x] 2026-10-18: Simplified source commit `849f22d` passed `clang++ -fsyntax-only` against the installed AzerothCore `2a2211cd8` compile flags; exit code 0 and no diagnostics. The temporary file was outside the live module.
+- [x] 2026-10-18: Trade-aware source commit `7cf7c19` passed `clang++ -fsyntax-only` with the same installed AzerothCore `2a2211cd8` production compile flags (exit 0, no diagnostics; temporary copy outside live module).
 - [ ] Full core/module link build from the proposed branch.
 - [ ] In-game runtime regression tests below.
 
@@ -21,6 +22,9 @@
 | Unrelated gray item | Accept or complete an unrelated quest; loot a gray item | Item is converted, despite quest's empty objective slots |
 | No active quest | Loot gray item that is otherwise associated with a quest | Ordinary junk behavior unless it starts a quest |
 | Preexisting stack | Have 19 of a stackable gray item, then loot 1 | 19 remain; payout for 1 |
+| Traded stack only | Mark the only stack of gray items as in trade, then loot more of that item so it merges into the traded stack | Conversion is skipped; no gold granted and no stack destroyed |
+| Traded plus non-traded, insufficient | Hold a traded gray stack and fewer than the newly looted quantity in non-traded stacks | Conversion is skipped; no gold granted |
+| Traded plus non-traded, sufficient | Hold a traded gray stack and enough non-traded quantity to cover the loot | Exactly the loot quantity is removed from eligible non-traded stacks; traded items remain; payout matches removed quantity |
 | Multi-stack loot | Loot enough stackable gray items to merge into and split between multiple stacks | Inventory count decreases by exactly the amount looted; payout matches |
 | Ordinary junk | Loot 1 and several gray items at varying sell prices | Item count and copper payout match precisely |
 | Non-gray loot | Loot normal/green items | Items remain; no payout |
@@ -30,6 +34,10 @@
 | Overflow guard | Exercise quantity/price combination over signed 32-bit payout maximum | Item remains; no overflow or negative payout |
 | Zero count | Invoke handler with zero count in a controlled test | No payout, no destruction |
 | Repeated looting | Loot a series of gray and quest items | No double-pay, item loss, or quest completion regression |
+
+## Trade preflight rationale
+
+On installed AzerothCore `2a2211cd8`, `Player::HasItemCount(itemId, count)` and `Player::DestroyItemCount(itemId, count, true)` both exclude stacks with `IsInTrade()`; `GetItemCount` does not. Preflighting `HasItemCount` before invoking the core removal routine guarantees that the single-threaded inventory operation has sufficient eligible quantity when it begins. This avoids introducing manual per-slot removal and an error-prone rollback implementation. Runtime testing is still required, especially for loot that merges into a traded stack; this is source-level verification, not a claim that gameplay tests passed.
 
 ## Account scope
 
