@@ -5,7 +5,7 @@
 - [x] 2026-10-18: Downloaded updated review commit `3a2dfb9abe8aad0148e1a6551852c08e1a368294` to `/tmp/junk-to-gold-pr-review-20261018/` on the authorized server.
 - [x] Re-ran `clang++ -fsyntax-only` against the exact compile flags from `/root/brambletown-upgrade-work/build-production/compile_commands.json` (AzerothCore commit `2a2211cd8`).
 - [x] New module source commit `3a2dfb9` compiled against AzerothCore commit `2a2211cd8`, exit code 0 with no diagnostics (2026-10-18). No live source, binary, or configuration modified.
-- [ ] Compile the latest simplified commit (`849f22d`); prior checks were on `3a2dfb9`.
+- [x] 2026-10-18: Simplified source commit `849f22d` passed `clang++ -fsyntax-only` against the installed AzerothCore `2a2211cd8` compile flags; exit code 0 and no diagnostics. The temporary file was outside the live module.
 - [ ] Full core/module link build from the proposed branch.
 - [ ] In-game runtime regression tests below.
 
