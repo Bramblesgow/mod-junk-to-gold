@@ -7,6 +7,7 @@
 - [x] New module source commit `3a2dfb9` compiled against AzerothCore commit `2a2211cd8`, exit code 0 with no diagnostics (2026-10-18). No live source, binary, or configuration modified.
 - [x] 2026-10-18: Simplified source commit `849f22d` passed `clang++ -fsyntax-only` against the installed AzerothCore `2a2211cd8` compile flags; exit code 0 and no diagnostics. The temporary file was outside the live module.
 - [x] 2026-10-18: Trade-aware source commit `7cf7c19` passed `clang++ -fsyntax-only` with the same installed AzerothCore `2a2211cd8` production compile flags (exit 0, no diagnostics; temporary copy outside live module).
+- [x] Compiled review source `7cf7c19` to an isolated C++ object file using the actual module `compile_commands.json` entry, exit 0 with no diagnostics. This confirms translation-unit compilation, not a successful full-worldserver link or runtime test.
 - [ ] Full core/module link build from the proposed branch.
 - [ ] In-game runtime regression tests below.
 
