@@ -3,8 +3,6 @@
 #include "Player.h"
 #include "QuestDef.h"
 #include "ScriptMgr.h"
-#include "World.h"
-#include "WorldSession.h"
 
 #include <limits>
 
@@ -30,14 +28,12 @@ public:
             return;
         }
 
-        // Mirror ModifyMoney's strict maximum and trial-account limits before
-        // destroying anything; at the cap, it would reject the credited money.
+        // Match ModifyMoney's strict maximum before destroying the items.
+        // A payout reaching the money cap is rejected by the core.
         uint64 const money = uint64(itemTemplate->SellPrice) * count;
         uint64 const newBalance = uint64(player->GetMoney()) + money;
-        uint32 const trialMoneyCap = sWorld->getIntConfig(CONFIG_TRIAL_MONEY_CAP);
         if (money > static_cast<uint64>(std::numeric_limits<int32>::max()) ||
             (money && newBalance >= MAX_MONEY_AMOUNT) ||
-            (money && trialMoneyCap && player->GetSession()->IsTrialAccount() && newBalance > trialMoneyCap) ||
             player->GetItemCount(itemId) < count)
         {
             return;
