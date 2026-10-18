@@ -32,9 +32,11 @@ public:
         // A payout reaching the money cap is rejected by the core.
         uint64 const money = uint64(itemTemplate->SellPrice) * count;
         uint64 const newBalance = uint64(player->GetMoney()) + money;
+        // HasItemCount excludes stacks marked for trade, as DestroyItemCount does.
+        // GetItemCount includes those stacks and could allow payment without removal.
         if (money > static_cast<uint64>(std::numeric_limits<int32>::max()) ||
             (money && newBalance >= MAX_MONEY_AMOUNT) ||
-            player->GetItemCount(itemId) < count)
+            !player->HasItemCount(itemId, count))
         {
             return;
         }
