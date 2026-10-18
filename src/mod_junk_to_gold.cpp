@@ -14,10 +14,17 @@ public:
             return;
         }
 
-        if (item->GetTemplate()->Quality == ITEM_QUALITY_POOR)
+        ItemTemplate const* itemTemplate = item->GetTemplate();
+
+        if (itemTemplate->StartQuest || player->HasQuestForItem(itemTemplate->ItemId))
+        {
+            return;
+        }
+
+        if (itemTemplate->Quality == ITEM_QUALITY_POOR)
         {
             SendTransactionInformation(player, item, count);
-            player->ModifyMoney(item->GetTemplate()->SellPrice * count);
+            player->ModifyMoney(itemTemplate->SellPrice * count);
             player->DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
         }
     }
