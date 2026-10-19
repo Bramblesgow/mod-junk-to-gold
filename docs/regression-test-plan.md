@@ -1,4 +1,4 @@
-# Junk-to-Gold — PR #1 regression plan
+# Junk-to-Gold — regression plan (PR #1 and follow-up cleanup)
 
 ## Build verification
 
@@ -8,6 +8,7 @@
 - [x] 2026-10-18: Simplified source commit `849f22d` passed `clang++ -fsyntax-only` against the installed AzerothCore `2a2211cd8` compile flags; exit code 0 and no diagnostics. The temporary file was outside the live module.
 - [x] 2026-10-18: Trade-aware source commit `7cf7c19` passed `clang++ -fsyntax-only` with the same installed AzerothCore `2a2211cd8` production compile flags (exit 0, no diagnostics; temporary copy outside live module).
 - [x] Compiled review source `7cf7c19` to an isolated C++ object file using the actual module `compile_commands.json` entry, exit 0 with no diagnostics. This confirms translation-unit compilation, not a successful full-worldserver link or runtime test.
+- [ ] Compile and run available static checks on the follow-up cleanup source; record the exact revision.
 - [ ] Full core/module link build from the proposed branch.
 - [ ] In-game runtime regression tests below.
 
@@ -31,7 +32,9 @@
 | Non-gray loot | Loot normal/green items | Items remain; no payout |
 | Gold cap (equal boundary) | Loot an item whose full reward would bring money to exactly `MAX_MONEY_AMOUNT` | Item remains; no sale receipt or payout |
 | Gold cap (above boundary) | Loot gray item with a reward that would exceed maximum money | Item remains; no partial payout |
-| Zero-price gray item | Loot a zero-sell-price gray item even when at money cap | Item is discarded normally, no extra money |
+| Zero-price gray item below cap | Loot a gray item with zero sell price while below the money cap | Item is discarded; zero-copper receipt, no balance change |
+| Zero-price gray item at cap | Loot a gray item with zero sell price while at the money cap | Item remains; no receipt or gold credited |
+| Receipt amount | Loot gray items with copper-only, silver and gold values, including multi-item loot | Receipt displays exactly the validated amount credited; count and formatting unchanged |
 | Overflow guard | Exercise quantity/price combination over signed 32-bit payout maximum | Item remains; no overflow or negative payout |
 | Zero count | Invoke handler with zero count in a controlled test | No payout, no destruction |
 | Repeated looting | Loot a series of gray and quest items | No double-pay, item loss, or quest completion regression |
