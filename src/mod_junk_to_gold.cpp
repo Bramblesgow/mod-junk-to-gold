@@ -28,14 +28,14 @@ public:
             return;
         }
 
-        // Match ModifyMoney's strict maximum before destroying the items.
-        // A payout reaching the money cap is rejected by the core.
+        // Keep gray loot when the player is at the gold cap, even if it has no value.
+        // Positive payouts that reach the cap would be rejected by ModifyMoney.
         uint64 const money = uint64(itemTemplate->SellPrice) * count;
         uint64 const newBalance = uint64(player->GetMoney()) + money;
         // HasItemCount excludes stacks marked for trade, as DestroyItemCount does.
         // GetItemCount includes those stacks and could allow payment without removal.
         if (money > static_cast<uint64>(std::numeric_limits<int32>::max()) ||
-            (money && newBalance >= MAX_MONEY_AMOUNT) ||
+            newBalance >= MAX_MONEY_AMOUNT ||
             !player->HasItemCount(itemId, count))
         {
             return;
@@ -45,7 +45,7 @@ public:
         // looted count; never dereference 'item' after inventory destruction.
         player->DestroyItemCount(itemId, count, true);
         player->ModifyMoney(static_cast<int32>(money));
-        SendTransactionInformation(player, itemTemplate, count);
+        SendTransactionInformation(player, itemTemplate, count, static_cast<uint32>(money));
     }
 
 private:
@@ -93,8 +93,8 @@ private:
         return false;
     }
 
-    /// Sends the conversion receipt from template data after the item is destroyed.
-    void SendTransactionInformation(Player* player, ItemTemplate const* itemTemplate, uint32 count)
+    /// Sends the receipt using the validated payout and stable item template.
+    void SendTransactionInformation(Player* player, ItemTemplate const* itemTemplate, uint32 count, uint32 payout)
     {
         std::string name;
         if (count > 1)
@@ -106,17 +106,16 @@ private:
             name = Acore::StringFormat("|cff9d9d9d|Hitem:{}::::::::80:::::|h[{}]|h|r", itemTemplate->ItemId, itemTemplate->Name1);
         }
 
-        uint32 money = itemTemplate->SellPrice * count;
-        uint32 gold = money / GOLD;
-        uint32 silver = (money % GOLD) / SILVER;
-        uint32 copper = (money % GOLD) % SILVER;
+        uint32 const gold = payout / GOLD;
+        uint32 const silver = (payout % GOLD) / SILVER;
+        uint32 const copper = payout % SILVER;
 
         std::string info;
-        if (money < SILVER)
+        if (payout < SILVER)
         {
             info = Acore::StringFormat("{} sold for {} copper.", name, copper);
         }
-        else if (money < GOLD)
+        else if (payout < GOLD)
         {
             if (copper > 0)
             {
