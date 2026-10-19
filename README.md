@@ -5,7 +5,7 @@ Automatically converts eligible newly looted gray (poor-quality) items into thei
 ## Conversion rules
 
 - Preserves items that start quests, as well as items required or referenced by accepted quests that are incomplete or complete but not yet turned in.
-- Converts only the newly looted quantity; existing copies of the same item are not meant to be sold.
+- Removes the same quantity as was just looted, even when it merges with existing stacks; it does not clear a whole stack merely because one item was looted.
 - Checks that enough inventory items can be removed without touching stacks reserved for trading. Loot that cannot be safely converted stays in inventory.
 - Skips conversion when the payout is too large or the resulting gold balance would **reach or exceed** AzerothCore's maximum, including zero-value gray items looted while already at the cap.
 - Leaves non-gray items untouched.
