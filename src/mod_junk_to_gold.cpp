@@ -1,4 +1,5 @@
 #include "Chat.h"
+#include "Log.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "QuestDef.h"
@@ -32,11 +33,19 @@ public:
         // Positive payouts that reach the cap would be rejected by ModifyMoney.
         uint64 const money = uint64(itemTemplate->SellPrice) * count;
         uint64 const newBalance = uint64(player->GetMoney()) + money;
+        // Keep the cap rejection separate so an isolated runtime test can
+        // confirm that this path exits before changing inventory or money.
+        if (money > static_cast<uint64>(std::numeric_limits<int32>::max()) ||
+            newBalance >= MAX_MONEY_AMOUNT)
+        {
+            LOG_DEBUG("module", "JunkToGold: skipped payout (item {}, count {}, balance {}, payout {}, proposed {})",
+                itemId, count, player->GetMoney(), money, newBalance);
+            return;
+        }
+
         // HasItemCount excludes stacks marked for trade, as DestroyItemCount does.
         // GetItemCount includes those stacks and could allow payment without removal.
-        if (money > static_cast<uint64>(std::numeric_limits<int32>::max()) ||
-            newBalance >= MAX_MONEY_AMOUNT ||
-            !player->HasItemCount(itemId, count))
+        if (!player->HasItemCount(itemId, count))
         {
             return;
         }
