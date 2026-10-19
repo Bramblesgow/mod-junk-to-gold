@@ -1,41 +1,112 @@
 #include "Chat.h"
+#include "ObjectMgr.h"
 #include "Player.h"
+#include "QuestDef.h"
 #include "ScriptMgr.h"
+
+#include <limits>
 
 class JunkToGold : public PlayerScript
 {
 public:
     JunkToGold() : PlayerScript("JunkToGold") {}
 
+    /// Converts newly looted gray items only when no accepted quest needs them.
+    /// Removes the loot quantity, not the entire inventory stack it was merged into.
     void OnPlayerLootItem(Player* player, Item* item, uint32 count, ObjectGuid /*lootguid*/) override
     {
-        if (!item || !item->GetTemplate())
+        if (!player || !item || !item->GetTemplate() || !count)
         {
             return;
         }
 
-        if (item->GetTemplate()->Quality == ITEM_QUALITY_POOR)
+        ItemTemplate const* itemTemplate = item->GetTemplate();
+        uint32 const itemId = itemTemplate->ItemId;
+        if (itemTemplate->Quality != ITEM_QUALITY_POOR ||
+            itemTemplate->StartQuest || IsNeededForActiveQuest(player, itemId))
         {
-            SendTransactionInformation(player, item, count);
-            player->ModifyMoney(item->GetTemplate()->SellPrice * count);
-            player->DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
+            return;
         }
+
+        // Match ModifyMoney's strict maximum before destroying the items.
+        // A payout reaching the money cap is rejected by the core.
+        uint64 const money = uint64(itemTemplate->SellPrice) * count;
+        uint64 const newBalance = uint64(player->GetMoney()) + money;
+        // HasItemCount excludes stacks marked for trade, as DestroyItemCount does.
+        // GetItemCount includes those stacks and could allow payment without removal.
+        if (money > static_cast<uint64>(std::numeric_limits<int32>::max()) ||
+            (money && newBalance >= MAX_MONEY_AMOUNT) ||
+            !player->HasItemCount(itemId, count))
+        {
+            return;
+        }
+
+        // StoreNewItem can merge and split loot across stacks. Destroy only the newly
+        // looted count; never dereference 'item' after inventory destruction.
+        player->DestroyItemCount(itemId, count, true);
+        player->ModifyMoney(static_cast<int32>(money));
+        SendTransactionInformation(player, itemTemplate, count);
     }
 
 private:
-    void SendTransactionInformation(Player* player, Item* item, uint32 count)
+    /// Checks exact item IDs for incomplete and complete (not yet turned-in) quests.
+    /// HasQuestForItem's default lookup misses completed objectives after looting.
+    static bool IsNeededForActiveQuest(Player const* player, uint32 itemId)
+    {
+        for (uint16 slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
+        {
+            uint32 const questId = player->GetQuestSlotQuestId(slot);
+            if (!questId)
+            {
+                continue;
+            }
+
+            QuestStatus const status = player->GetQuestStatus(questId);
+            if (status != QUEST_STATUS_INCOMPLETE && status != QUEST_STATUS_COMPLETE)
+            {
+                continue;
+            }
+
+            Quest const* quest = sObjectMgr->GetQuestTemplate(questId);
+            if (!quest)
+            {
+                continue;
+            }
+
+            for (uint8 i = 0; i < QUEST_ITEM_OBJECTIVES_COUNT; ++i)
+            {
+                if (quest->RequiredItemId[i] == itemId && quest->RequiredItemCount[i] > 0)
+                {
+                    return true;
+                }
+            }
+
+            for (uint8 i = 0; i < QUEST_SOURCE_ITEM_IDS_COUNT; ++i)
+            {
+                if (quest->ItemDrop[i] == itemId)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// Sends the conversion receipt from template data after the item is destroyed.
+    void SendTransactionInformation(Player* player, ItemTemplate const* itemTemplate, uint32 count)
     {
         std::string name;
         if (count > 1)
         {
-            name = Acore::StringFormat("|cff9d9d9d|Hitem:{}::::::::80:::::|h[{}]|h|rx{}", item->GetTemplate()->ItemId, item->GetTemplate()->Name1, count);
+            name = Acore::StringFormat("|cff9d9d9d|Hitem:{}::::::::80:::::|h[{}]|h|rx{}", itemTemplate->ItemId, itemTemplate->Name1, count);
         }
         else
         {
-            name = Acore::StringFormat("|cff9d9d9d|Hitem:{}::::::::80:::::|h[{}]|h|r", item->GetTemplate()->ItemId, item->GetTemplate()->Name1);
+            name = Acore::StringFormat("|cff9d9d9d|Hitem:{}::::::::80:::::|h[{}]|h|r", itemTemplate->ItemId, itemTemplate->Name1);
         }
 
-        uint32 money = item->GetTemplate()->SellPrice * count;
+        uint32 money = itemTemplate->SellPrice * count;
         uint32 gold = money / GOLD;
         uint32 silver = (money % GOLD) / SILVER;
         uint32 copper = (money % GOLD) % SILVER;
