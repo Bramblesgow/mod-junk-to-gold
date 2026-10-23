@@ -25,4 +25,10 @@ This is **diagnostic instrumentation, not a proven bug fix**. A successful CodeR
 
 ## Current disposition
 
-The previous version remains production active. This PR is review/test only and must not be merged or deployed until the cause and runtime results are understood.
+**Updated October 23, 2026:** PR #3 was tested in the isolated combined realm, merged and deployed to production after explicit owner approval. The earlier review-only restrictions above describe the historical investigation phase and are not the current release status.
+
+The owner reported J02 and the main conversion/boundary cases Pass; archived real-loot logs show exact-cap, above-cap, at-cap priced-gray and at-cap zero-value rejection with retained items. All 27 existing mock-integrated checks passed. The original J02 starting balance was not independently logged because DEBUG was initially off; several gameplay edge cases remain deferred.
+
+The VM-wide freeze did not recur. Its root cause remains **unconfirmed**, and this diagnostic change is **not** presented as proof of a VM-crash fix.
+
+See [October 23 test and release results](TEST_RESULTS_2026-10-23.md) and the [open coverage/evidence follow-up](https://github.com/Bramblesgow/mod-brambletown-services/issues/9).
